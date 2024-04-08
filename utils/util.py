@@ -10,3 +10,5 @@ def set_grad(var):
         var.grad = grad
     return hook
 
+def calc_grid_size(shape, threads_dim=16):
+    return ((shape[0] + threads_dim - 1)//threads_dim, (shape[1] + threads_dim - 1)//threads_dim, 1)
