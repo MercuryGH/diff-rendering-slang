@@ -10,3 +10,6 @@ brdf2d = slangpy.loadModule("shaders/renderer/BRDF.slang", verbose=True)
 
 light_kernel = slangpy.loadModule("shaders/renderer/lightkernel.slang", verbose=True)
 
+# softras
+
+soft_ras = slangpy.loadModule("shaders/soft_ras/main.slang", verbose=True)
