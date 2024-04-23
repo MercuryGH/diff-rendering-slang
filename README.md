@@ -1,6 +1,6 @@
 # Differential Rendering Experiment with Slang
 
-Currently we have 2 projects from slang-python (https://github.com/shader-slang/slang-python/tree/main) examples:
+Currently we have 2 projects from slang-torch (https://github.com/shader-slang/slang-torch/tree/main) examples:
 
 ```
 brdf_2d_minimization.py

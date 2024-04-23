@@ -134,8 +134,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-tests/.slangpy_cache/
 bin/
 
 # Ignore all slangpy cache folders.
-**/.slangpy_cache/**
+**/.slangtorch_cache/**

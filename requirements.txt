@@ -1,6 +1,6 @@
 torch
 matplotlib
 numpy
-slangpy
+slangtorch
 cuda-nvcc
 opencv
