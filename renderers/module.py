@@ -1,6 +1,6 @@
 import slangtorch
 
-rasterizer2d = slangtorch.loadModule("shaders/rasterizer/main.slang", verbose=True)
+rasterizer2d = slangtorch.loadModule("shaders/rasterizer/rasterizer.slang", verbose=True)
 
 camera = rasterizer2d.Camera(o=(0.0, 0.0), scale=(1.0, 1.0), frameDim=(1024, 1024))
 
