@@ -8,21 +8,35 @@ from utils.util import wrap_float_tensor
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-def single_forward(renderer: SoftRas, width, height, face_vertices):
-    output = renderer.forward(ctx=None, width=width, height=height, face_vertices=face_vertices)
+
+# class RenderParams:
+#     def __init__(self, width, height, sigma):
+#         self.width = width
+#         self.height = height
+#         self.sigma = sigma
+#     def to_dict(self):
+#         return {'width': self.width, 'height': self.height, 'sigma': self.sigma}
+
+def single_forward(renderer, width, height, face_vertices, RenderParams):
+    # Create an instance of RenderParams
+    # params = RenderParams(width, height, sigma)
+    # Pass it to the forward function
+    output = renderer.apply(width, height, face_vertices, RenderParams)  # output is a tensor
     return output
+
 
 def main():
     renderer = SoftRas()
-    width = height = 20
+    width = height = 512
+    sigma = 0.5  # Choose an appropriate sigma value
 
     face_vertices = spot_obj.face_vertices
-    # print(face_vertices.size()) # torch.Size([1, 5856, 3, 3])
-
-    output = single_forward(renderer, width, height, face_vertices)
-    plt.rcParams['figure.figsize'] = (10, 10)
+    params = {'width': width, 'height': height, 'sigma': sigma} 
+    output = single_forward(renderer, width, height, face_vertices, params)
+    plt.rcParams['figure.figsize'] = (20, 20)
     plt.imshow(output.cpu().numpy())
     plt.show()
+
 
 if __name__ == '__main__':
     main()
