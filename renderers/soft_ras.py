@@ -9,47 +9,43 @@ BLOCK_SIZE = (16, 16, 1)
 
 class SoftRas(Function):
     @staticmethod
-    def forward(ctx, width, height, face_vertices):
+    def forward(ctx, width, height, face_vertices, params):
+        ctx.save_for_backward(face_vertices)
+        ctx.params = params
         original_shape = (width, height, 3)
         output = torch.zeros(original_shape, dtype=torch.float).cuda()
-
+        
         grid_size = calc_grid_size(original_shape)
 
         soft_ras.forward_stub(
             face_vertices=face_vertices,
-            output=output
+            output=output,
+            params=params  # directly pass the RenderParams instance
         ).launchRaw(
             blockSize=BLOCK_SIZE,
             gridSize=grid_size
         )
 
-        # ctx.save_for_backward(face_vertices, output)
-
         return output
+
+
 
     @staticmethod
     def backward(ctx, grad_output):
-        # TODO: specify backward parameters
-        pass
-        face_vertices, output = ctx.saved_tensors
-
+        face_vertices, = ctx.saved_tensors
+        params = ctx.params
         grad_face_vertices = torch.zeros_like(face_vertices)
         grad_output = grad_output.contiguous()
 
         width, height = grad_output.shape[:2]
 
-        start = timeit.default_timer()
-
-        soft_ras.forward_stub.bwd(
+        soft_ras.backward_stub(
             vertices=(face_vertices, grad_face_vertices),
-            output=(output, grad_output)
+            output_grad=(grad_output, None),
+            params=params  # Pass the stored params
         ).launchRaw(
             blockSize=BLOCK_SIZE,
-            gridSize=((width + 15)//16, (height + 15)//16, 1)
+            gridSize=((width + 15) // 16, (height + 15) // 16, 1)
         )
 
-        end = timeit.default_timer()
-
-        print("Backward pass: %f seconds" % (end - start))
-
-        return None, None, grad_face_vertices
+        return None, None, grad_face_vertices, None 
