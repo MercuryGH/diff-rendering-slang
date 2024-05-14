@@ -11,8 +11,6 @@ import math;
 
 struct RenderParams
 {
-    uint width;
-    uint height;
     float sigma;
     float epsilon;
     float gamma;
@@ -81,7 +79,31 @@ void main(
 
     // if (global_idx.x == 0 && global_idx.y == 0)
     // {
-    //     printf("inital color: %f %f %f\n", color.x, color.y, color.z);
+    //     // let cam = PerspectiveCamera(float3(0, 0, 3), float3(0, 0, -1), float3(0, 1, 0), 60 / 180 * 3.14159265358, 1.0, 0.1, 100);
+    //     let p_n = float4(1, 0, -0.1, 1);
+    //     let p_f = float4(1, 0, -100, 1);
+    //     // let view = cam.getViewMatrix();
+    //     const let fovy = 60.0 / 180.0 * 3.14159265358;
+    //     let proj = perspective(fovy, 1.0, 0.1, 100);
+
+    //     printf("tan(90): %f\n", tan(90));
+    //     printf("fovy: %f\n", fovy);
+    //     printf("tan(fovy * 0.5f): %f\n", tan(fovy * 0.5f));
+    //     printf("1.0f / tan(fovy * 0.5f): %f\n", 1.0f / tan(fovy * 0.5f));
+
+    //     printf("proj row0: %f %f %f %f\n", proj[0][0], proj[1][0], proj[2][0], proj[3][0]);
+    //     printf("proj row1: %f %f %f %f\n", proj[0][1], proj[1][1], proj[2][1], proj[3][1]);
+    //     printf("proj row2: %f %f %f %f\n", proj[0][2], proj[1][2], proj[2][2], proj[3][2]);
+    //     printf("proj row3: %f %f %f %f\n", proj[0][3], proj[1][3], proj[2][3], proj[3][3]);
+
+    //     float4 p_pn = mul(proj, p_n);
+    //     float4 p_pf = mul(proj, p_f);
+
+    //     p_pn /= p_pn.w;
+    //     p_pf /= p_pf.w;
+
+    //     printf("p_pn: %f %f %f %f\n", p_pn.x, p_pn.y, p_pn.z, p_pn.w);
+    //     printf("p_pf: %f %f %f %f\n", p_pf.x, p_pf.y, p_pf.z, p_pf.w);
     // }
 
     [MaxIters(3)]
@@ -128,9 +150,9 @@ void main(
 
             // if (global_idx.x == 0 && global_idx.y == 0)
             // {
-            //     printf("hit: %f\n", hit);
-            //     printf("hit_inv_z: %f\n", hit_inv_z);
-            //     printf("softmax_sum: %f\n", softmax_sum);
+            // printf("hit: %f\n", hit);
+            // printf("hit_inv_z: %f\n", hit_inv_z);
+            // printf("softmax_sum: %f\n", softmax_sum);
             // }
         }
     }

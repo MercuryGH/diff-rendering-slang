@@ -13,6 +13,7 @@ class Camera:
 @dataclass
 class PerspectiveCamera(Camera):
     fov: float
-    aspect: float
     near: float
     far: float
+    width: int
+    height: int

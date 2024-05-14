@@ -1,15 +1,15 @@
 [Differentiable]
 float4x4 lookAt(float3 eye, float3 center, float3 up)
 {
-    float3 f = normalize(center - eye);
-    float3 s = normalize(cross(f, up));
-    float3 u = cross(s, f);
+    const float3 f = normalize(center - eye);
+    const float3 s = normalize(cross(f, up));
+    const float3 u = cross(s, f);
 
     return float4x4(
-        float4(s, -dot(s, eye)),
-        float4(u, -dot(u, eye)),
-        float4(-f, dot(f, eye)),
-        float4(0.0f, 0.0f, 0.0f, 1.0f));
+        float4(s.x, u.x, -f.x, 0.0f),
+        float4(s.y, u.y, -f.y, 0.0f),
+        float4(s.z, u.z, -f.z, 0.0f),
+        float4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f));
 }
 
 [Differentiable]
@@ -21,8 +21,8 @@ float4x4 perspective(float fovy, float aspect, float near, float far)
     return float4x4(
         float4(f / aspect, 0.0f, 0.0f, 0.0f),
         float4(0.0f, f, 0.0f, 0.0f),
-        float4(0.0f, 0.0f, (far + near) * nf, -1.0f),
-        float4(0.0f, 0.0f, 2.0f * far * near * nf, 0.0f));
+        float4(0.0f, 0.0f, (far + near) * nf, 2.0f * far * near * nf),
+        float4(0.0f, 0.0f, -1.0f, 0.0f));
 }
 
 struct PerspectiveCamera

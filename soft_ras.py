@@ -5,39 +5,50 @@ import os
 from renderers.soft_ras import SoftRas
 from resources.resource import capsule_obj
 from utils.util import wrap_float_tensor
+from renderers.camera import PerspectiveCamera
+import math
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
-def single_forward(
-    renderer, width, height, face_vertices, RenderParams
-) -> torch.Tensor:
+def single_forward(renderer, camera, face_vertices, RenderParams) -> torch.Tensor:
     # Create an instance of RenderParams
     # params = RenderParams(width, height, sigma)
     # Pass it to the forward function
-    output = renderer.apply(width, height, face_vertices, RenderParams)
+    output = renderer.apply(camera, face_vertices, RenderParams)
     return output
 
 
 def main():
     renderer = SoftRas()
-    width = height = 512
-    sigma = 1e-4  # Choose an appropriate sigma value
+    # width = height = 512
 
     face_vertices = capsule_obj.face_vertices
+    print(face_vertices.shape)
+
     params = {
-        "width": width,
-        "height": height,
-        "sigma": sigma,
+        "sigma": 1e-4,
         "epsilon": 1e-3,
         "gamma": 1e-4,
         "distance_epsilon": 1e-5,
         "fg_color": [0.7, 0.8, 0.9],
         "bg_color": [0.9, 0.9, 0.9],
     }
-    output = single_forward(renderer, width, height, face_vertices, params)
+
+    camera = PerspectiveCamera(
+        eye=[0.0, 0.0, 3.0],
+        dir=[0.0, 0.0, -1.0],
+        up=[0.0, 1.0, 0.0],
+        fov=60.0 / 180.0 * math.pi,
+        near=0.1,
+        far=100,
+        width=512,
+        height=512,
+    )
+
+    output = single_forward(renderer, camera, face_vertices, params)
     print(output[0, 0, :])
-    plt.rcParams["figure.figsize"] = (width, height)
+    plt.rcParams["figure.figsize"] = (camera.width, camera.height)
     plt.imshow(output.cpu().numpy())
     plt.show()
 

@@ -1,6 +1,5 @@
 import torch
 import timeit
-import math
 import numpy as np
 from torch.autograd import Function
 from renderers.module import soft_ras
@@ -10,23 +9,13 @@ from renderers.camera import PerspectiveCamera
 
 BLOCK_SIZE = (16, 16, 1)
 
-camera = PerspectiveCamera(
-    eye=[0.0, 0.0, 3.0],
-    dir=[0.0, 0.0, -1.0],
-    up=[0.0, 1.0, 0.0],
-    fov=45 / 180 * math.pi,
-    aspect=1,
-    near=0.1,
-    far=100,
-)
-
 
 class SoftRas(Function):
     @staticmethod
-    def forward(ctx, width, height, face_vertices, params):
+    def forward(ctx, camera: PerspectiveCamera, face_vertices: torch.Tensor, params):
         ctx.save_for_backward(face_vertices)
         ctx.params = params
-        original_shape = (width, height, 3)
+        original_shape = (camera.width, camera.height, 3)
         output = torch.zeros(original_shape, dtype=torch.float).cuda()
 
         grid_size = calc_grid_size(original_shape)
@@ -37,7 +26,7 @@ class SoftRas(Function):
                 camera.dir,
                 camera.up,
                 camera.fov,
-                float(width) / float(height),
+                float(camera.width) / float(camera.height),
                 camera.near,
                 camera.far,
             ),
