@@ -8,4 +8,6 @@ roughness *= roughness
 
 from utils.mesh import Mesh
 
-spot_obj = Mesh.from_obj("resources/spot_triangulated.obj", load_texture=False)
+# spot_obj = Mesh.from_obj("resources/spot_triangulated.obj", load_texture=False)
+
+capsule_obj = Mesh.from_obj("resources/capsule.obj", load_texture=False)

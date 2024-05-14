@@ -6,93 +6,107 @@
 // SoftRasFunction::forward() & backward()
 // (CUDA) forward_soft_rasterize_cuda() and backward_soft_rasterize_cuda()
 
-struct RenderParams {
+import camera;
+import math;
+
+struct RenderParams
+{
     uint width;
     uint height;
     float sigma;
+    float epsilon;
+    float gamma;
+
+    float3 fg_color;
+    float3 bg_color;
 };
 
 [Differentiable]
-float getInputElement(DiffTensorView<float> input,
-                      no_diff int3 loc)
+float getInputElement(
+    DiffTensorView<float> input,
+    int3 loc // (bs, face, vertex)
+)
 {
     loc = min(loc, int3(input.size(0) - 1, input.size(1) - 1, input.size(2) - 1));
     loc = max(loc, int3(0, 0, 0));
     return input.load(loc);
 }
 
-float3 computeBarycentric2D(no_diff float3 v0, no_diff float3 v1, no_diff float3 v2, no_diff float2 p) {
-    float3 v0v1 = v1 - v0;
-    float3 v0v2 = v2 - v0;
-    float3 p0 = float3(p.x - v0.x, p.y - v0.y, 0.0f);
-    float area = cross(v0v1, v0v2).z;
-    float alpha = cross(v1 - v2, p0).z / area;
-    float beta = cross(v2 - v0, float3(p.x - v1.x, p.y - v1.y, 0.0f)).z / area;
-    float gamma = 1.0f - alpha - beta;
-    return float3(alpha, beta, gamma);
+[Differentiable]
+float3 loadFloat3FromTensor(
+    DiffTensorView<float> input,
+    int3 loc // (bs, face, vertex)
+)
+{
+    loc = min(loc, int3(input.size(0) - 1, input.size(1) - 1, input.size(2) - 1));
+    loc = max(loc, int3(0, 0, 0));
+    return float3(input[loc.x, loc.y, loc.z, 0], input[loc.x, loc.y, loc.z, 1], input[loc.x, loc.y, loc.z, 2]);
 }
-
-float calculateDepth(no_diff float3 barycentric, no_diff float z0, no_diff float z1, no_diff float z2) {
-    return barycentric.x * z0 + barycentric.y * z1 + barycentric.z * z2;
-}
-
-bool isInsideTriangle(no_diff float3 barycentric) {
-    return barycentric.x >= 0.0f && barycentric.y >= 0.0f && barycentric.z >= 0.0f;
-}
-
-float computeSoftEdgeWeight(no_diff float3 barycentric, no_diff float sigma) {
-    float weight = exp(-barycentric.x * barycentric.x / (2.0f * sigma * sigma));
-    weight += exp(-barycentric.y * barycentric.y / (2.0f * sigma * sigma));
-    weight += exp(-barycentric.z * barycentric.z / (2.0f * sigma * sigma));
-    return weight;
-}
-
 
 [CudaKernel]
 [Differentiable]
 [AutoPyBindCUDA]
-void forward_stub(
+void main(
+    PerspectiveCamera camera,
     DiffTensorView<float> face_vertices,
     DiffTensorView<float> output,
-    RenderParams params) //control soft rasterization
+    RenderParams params) // control soft rasterization
 {
-    uint3 globalIdx = cudaBlockIdx() * cudaBlockDim() + cudaThreadIdx();
-    if (globalIdx.x >= params.width || globalIdx.y >= params.height)
+    uint3 global_idx = cudaBlockIdx() * cudaBlockDim() + cudaThreadIdx();
+
+    uint2 image_size = uint2(output.size(0), output.size(1));
+
+    if (global_idx.x >= image_size.x || global_idx.y >= image_size.y)
         return;
 
-    // position in normalized device coordinates
-    float pixelCenterX = (globalIdx.x + 0.5f) / params.width * 2.0f - 1.0f;
-    float pixelCenterY = (globalIdx.y + 0.5f) / params.height * 2.0f - 1.0f;
-    float4 color = { 0.0f, 0.0f, 0.0f, 0.0f }; // RGBA
-    float depth = 1e6;
-    int numVertices = face_vertices.size(1) / 3;
+    uint i = global_idx.y * image_size.x + global_idx.x;
 
-    //const uint image_size = 20; // temp
-    //uint i = globalIdx.y * image_size + globalIdx.x;
+    float2 pixel_coord = global_idx.xy + 0.5;
 
-    // float3 result = float3(face_vertices[3 * i], face_vertices[3 * i + 1], face_vertices[3 * i + 2]);
-    [MaxIters(100)]
-    for (int i = 0; i < numVertices / 3; i++) {
-        float3 v0 = getInputElement(face_vertices, int3(0, 3 * i, 0));
-        float3 v1 = getInputElement(face_vertices, int3(0, 3 * i + 1, 0));
-        float3 v2 = getInputElement(face_vertices, int3(0, 3 * i + 2, 0));
+    const float3 fg_color = params.fg_color; // TODO: replace it with proper texture mapping
+    const float3 bg_color = params.bg_color;
 
-        float3 barycentric = no_diff computeBarycentric2D(v0, v1, v2, float2(pixelCenterX, pixelCenterY));
+    const float epsilon = params.epsilon;
+    const float gamma = params.gamma;
 
-        float pixelDepth = no_diff calculateDepth(barycentric, v0.z, v1.z, v2.z);
+    let mvp = MVP(camera.getViewMatrix(), camera.getProjMatrix(), float2(image_size));
 
-        if (isInsideTriangle(barycentric) && pixelDepth < depth) {
-            float weight =no_diff computeSoftEdgeWeight(barycentric, params.sigma);
-            color = float4(weight * v0.x, weight * v1.y, weight * v2.z, 1.0f); // Example of color calculation
-            depth = pixelDepth;
+    float bg_weight = exp(epsilon / gamma);
+    float total_weight = bg_weight;
+
+    float3 color = bg_weight * bg_color;
+
+    [MaxIters(3)]
+    for (uint bs = 0; bs < face_vertices.size(0); bs++) // for each batch
+    {
+        [MaxIters(600)]                                                 // TODO: remove this by using separate kernel
+        for (uint i_face = 0; i_face < face_vertices.size(1); i_face++) // for each face
+        {
+            float3 A = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 0));
+            float3 B = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 1));
+            float3 C = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 2));
+
+            /// project vertices to screen space
+            float3 A_ = mvp.worldToScreen(A);
+            float3 B_ = mvp.worldToScreen(B);
+            float3 C_ = mvp.worldToScreen(C);
+
+            float3 barycentric = computeBarycentric2D(A_, B_, C_, pixel_coord);
+
+            float hit = soft_triangle(pixel_coord, A_.xy, B_.xy, C_.xy, params.sigma);
+
+            /// do barycentric interpolation for inverse z under perspective camera
+            float hit_inv_z = barycentric.x * A.z + barycentric.y * B.z + barycentric.z * C.z;
+
+            color += hit * exp(hit_inv_z / gamma) * fg_color;
+            total_weight += hit * exp(hit_inv_z / gamma);
         }
     }
-    // Storing the result once per thread
-    output.storeOnce(uint3(globalIdx.x, globalIdx.y, 0), color.x);
-    output.storeOnce(uint3(globalIdx.x, globalIdx.y, 1), color.y);
-    output.storeOnce(uint3(globalIdx.x, globalIdx.y, 2), color.z);
-    output.storeOnce(uint3(globalIdx.x, globalIdx.y, 3), color.w);
-    //calculate barycentric coordinates and depth   
-     //printf("%d, %d, %d, %d, %d\n", face_vertices.size(0), face_vertices.size(1), face_vertices.size(2), face_vertices.size(3), face_vertices.size(4)); // 1, 5856, 3, 3, 0
+
+    color /= total_weight;
+
+    output.storeOnce(uint3(global_idx.xy, 0), color.x);
+    output.storeOnce(uint3(global_idx.xy, 1), color.y);
+    output.storeOnce(uint3(global_idx.xy, 2), color.z);
 }
 
