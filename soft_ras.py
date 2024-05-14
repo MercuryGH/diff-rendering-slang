@@ -31,6 +31,7 @@ def main():
         "sigma": sigma,
         "epsilon": 1e-3,
         "gamma": 1e-4,
+        "distance_epsilon": 1e-5,
         "fg_color": [0.7, 0.8, 0.9],
         "bg_color": [0.9, 0.9, 0.9],
     }

@@ -17,6 +17,8 @@ struct RenderParams
     float epsilon;
     float gamma;
 
+    float distance_epsilon;
+
     float3 fg_color;
     float3 bg_color;
 };
@@ -72,9 +74,15 @@ void main(
     let mvp = MVP(camera.getViewMatrix(), camera.getProjMatrix(), float2(image_size));
 
     float bg_weight = exp(epsilon / gamma);
-    float total_weight = bg_weight;
+    float softmax_sum = bg_weight;
+    float softmax_max = params.epsilon;
 
     float3 color = bg_weight * bg_color;
+
+    // if (global_idx.x == 0 && global_idx.y == 0)
+    // {
+    //     printf("inital color: %f %f %f\n", color.x, color.y, color.z);
+    // }
 
     [MaxIters(3)]
     for (uint bs = 0; bs < face_vertices.size(0); bs++) // for each batch
@@ -93,17 +101,48 @@ void main(
 
             float3 barycentric = computeBarycentric2D(A_, B_, C_, pixel_coord);
 
-            float hit = soft_triangle(pixel_coord, A_.xy, B_.xy, C_.xy, params.sigma);
+            float d = distanceToTriangle(pixel_coord, A_.xy, B_.xy, C_.xy);
+
+            if (d > 0 && d * d > params.distance_epsilon * params.sigma)
+                continue; // skip faces far away from the pixel to avoid NaN
+
+            const float hit = sigmoid(-_sign(d) * d * d / params.sigma);
 
             /// do barycentric interpolation for inverse z under perspective camera
-            float hit_inv_z = barycentric.x * A.z + barycentric.y * B.z + barycentric.z * C.z;
+            const float hit_inv_z = barycentric.x * A.z + barycentric.y * B.z + barycentric.z * C.z;
 
-            color += hit * exp(hit_inv_z / gamma) * fg_color;
-            total_weight += hit * exp(hit_inv_z / gamma);
+            if (hit_inv_z < -1.0 || hit_inv_z > 1.0)
+            {
+                continue; // hit point is outside the view frustum
+            }
+
+            float exp_delta_inv_z = 1.0;
+            if (hit_inv_z > softmax_max)
+            {
+                exp_delta_inv_z = exp((hit_inv_z - softmax_max) / params.gamma);
+                softmax_max = hit_inv_z;
+            }
+            const float exp_z = exp(hit_inv_z / gamma);
+            softmax_sum = exp_delta_inv_z * softmax_sum + exp_z * hit;
+            color = exp_delta_inv_z * color + exp_z * hit * fg_color;
+
+            // if (global_idx.x == 0 && global_idx.y == 0)
+            // {
+            //     printf("hit: %f\n", hit);
+            //     printf("hit_inv_z: %f\n", hit_inv_z);
+            //     printf("softmax_sum: %f\n", softmax_sum);
+            // }
         }
     }
 
-    color /= total_weight;
+    color /= softmax_sum;
+
+    // if (global_idx.x == 0 && global_idx.y == 0)
+    // {
+    //     printf("bg_weight: %f\n", bg_weight);
+    //     printf("softmax_sum: %f\n", softmax_sum);
+    //     printf("color: %f %f %f\n", color.x, color.y, color.z);
+    // }
 
     output.storeOnce(uint3(global_idx.xy, 0), color.x);
     output.storeOnce(uint3(global_idx.xy, 1), color.y);
