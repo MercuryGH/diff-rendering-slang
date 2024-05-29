@@ -6,6 +6,9 @@
 // SoftRasFunction::forward() & backward()
 // (CUDA) forward_soft_rasterize_cuda() and backward_soft_rasterize_cuda()
 
+// #define DEBUG
+#include <debug.slangh>
+
 import camera;
 import math;
 
@@ -72,39 +75,12 @@ void main(
     let mvp = MVP(camera.getViewMatrix(), camera.getProjMatrix(), float2(image_size));
 
     float bg_weight = exp(epsilon / gamma);
+    if_pixel(0, 0) pdebug(bg_weight);
+
     float softmax_sum = bg_weight;
     float softmax_max = params.epsilon;
 
     float3 color = bg_weight * bg_color;
-
-    // if (global_idx.x == 0 && global_idx.y == 0)
-    // {
-    //     // let cam = PerspectiveCamera(float3(0, 0, 3), float3(0, 0, -1), float3(0, 1, 0), 60 / 180 * 3.14159265358, 1.0, 0.1, 100);
-    //     let p_n = float4(1, 0, -0.1, 1);
-    //     let p_f = float4(1, 0, -100, 1);
-    //     // let view = cam.getViewMatrix();
-    //     const let fovy = 60.0 / 180.0 * 3.14159265358;
-    //     let proj = perspective(fovy, 1.0, 0.1, 100);
-
-    //     printf("tan(90): %f\n", tan(90));
-    //     printf("fovy: %f\n", fovy);
-    //     printf("tan(fovy * 0.5f): %f\n", tan(fovy * 0.5f));
-    //     printf("1.0f / tan(fovy * 0.5f): %f\n", 1.0f / tan(fovy * 0.5f));
-
-    //     printf("proj row0: %f %f %f %f\n", proj[0][0], proj[1][0], proj[2][0], proj[3][0]);
-    //     printf("proj row1: %f %f %f %f\n", proj[0][1], proj[1][1], proj[2][1], proj[3][1]);
-    //     printf("proj row2: %f %f %f %f\n", proj[0][2], proj[1][2], proj[2][2], proj[3][2]);
-    //     printf("proj row3: %f %f %f %f\n", proj[0][3], proj[1][3], proj[2][3], proj[3][3]);
-
-    //     float4 p_pn = mul(proj, p_n);
-    //     float4 p_pf = mul(proj, p_f);
-
-    //     p_pn /= p_pn.w;
-    //     p_pf /= p_pf.w;
-
-    //     printf("p_pn: %f %f %f %f\n", p_pn.x, p_pn.y, p_pn.z, p_pn.w);
-    //     printf("p_pf: %f %f %f %f\n", p_pf.x, p_pf.y, p_pf.z, p_pf.w);
-    // }
 
     [MaxIters(3)]
     for (uint bs = 0; bs < face_vertices.size(0); bs++) // for each batch
@@ -116,55 +92,85 @@ void main(
             float3 B = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 1));
             float3 C = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 2));
 
-            /// project vertices to screen space
-            float3 A_ = mvp.worldToScreen(A);
-            float3 B_ = mvp.worldToScreen(B);
-            float3 C_ = mvp.worldToScreen(C);
+            float3 A_view = mvp.worldToView(A);
+            float3 B_view = mvp.worldToView(B);
+            float3 C_view = mvp.worldToView(C);
 
-            float3 barycentric = computeBarycentric2D(A_, B_, C_, pixel_coord);
+            float3 A_screen = mvp.viewToScreen(A_view);
+            float3 B_screen = mvp.viewToScreen(B_view);
+            float3 C_screen = mvp.viewToScreen(C_view);
 
-            float d = distanceToTriangle(pixel_coord, A_.xy, B_.xy, C_.xy);
+            float3 barycentric = barycentric(float3(A_screen.xy, 0), float3(B_screen.xy, 0), float3(C_screen.xy, 0), float3(pixel_coord, 0));
+
+            if_pixel(256, 256)
+            {
+                pdebug3(A);
+                pdebug3(B);
+                pdebug3(C);
+
+                pdebug3(A_view);
+                pdebug3(B_view);
+                pdebug3(C_view);
+
+                pdebug3(A_screen);
+                pdebug3(B_screen);
+                pdebug3(C_screen);
+
+                pdebug3(barycentric);
+
+                pdebug2(pixel_coord);
+                pdebug2(mvp.screen_resolution);
+            }
+
+            /// do barycentric interpolation for inverse z under perspective camera
+            const float hit_z_view = -1.0 / (barycentric.x * (1.0 / A_view.z) + barycentric.y * (1.0 / B_view.z) + barycentric.z * (1.0 / C_view.z));
+
+            if_pixel(256, 256)
+            {
+                pdebug(hit_z_view);
+            }
+
+            if (hit_z_view < camera.near || hit_z_view > camera.far)
+            {
+                continue; // hit point is outside the view frustum
+            }
+
+            // non-linear interpolation & reverse z
+            const float hit_z_norm = 1.0 - (hit_z_view - camera.near) * camera.far / (camera.far - camera.near) / hit_z_view;
+
+            float d = distanceToTriangle(pixel_coord, A_screen.xy, B_screen.xy, C_screen.xy);
 
             if (d > 0 && d * d > params.distance_epsilon * params.sigma)
                 continue; // skip faces far away from the pixel to avoid NaN
 
             const float hit = sigmoid(-_sign(d) * d * d / params.sigma);
 
-            /// do barycentric interpolation for inverse z under perspective camera
-            const float hit_inv_z = barycentric.x * A.z + barycentric.y * B.z + barycentric.z * C.z;
-
-            if (hit_inv_z < -1.0 || hit_inv_z > 1.0)
-            {
-                continue; // hit point is outside the view frustum
-            }
-
             float exp_delta_inv_z = 1.0;
-            if (hit_inv_z > softmax_max)
+            if (hit_z_norm > softmax_max)
             {
-                exp_delta_inv_z = exp((hit_inv_z - softmax_max) / params.gamma);
-                softmax_max = hit_inv_z;
+                exp_delta_inv_z = exp((hit_z_norm - softmax_max) / params.gamma);
+                softmax_max = hit_z_norm;
             }
-            const float exp_z = exp(hit_inv_z / gamma);
-            softmax_sum = exp_delta_inv_z * softmax_sum + exp_z * hit;
-            color = exp_delta_inv_z * color + exp_z * hit * fg_color;
+            const float exp_z = exp((hit_z_norm - softmax_max) / gamma);
+            softmax_sum = softmax_sum / exp_delta_inv_z + exp_z * hit;
+            color = color / exp_delta_inv_z + exp_z * hit * fg_color;
 
-            // if (global_idx.x == 0 && global_idx.y == 0)
-            // {
-            // printf("hit: %f\n", hit);
-            // printf("hit_inv_z: %f\n", hit_inv_z);
-            // printf("softmax_sum: %f\n", softmax_sum);
-            // }
+            if_pixel(256, 256)
+            {
+                pdebug(hit_z_norm);
+                pdebug(d);
+                pdebug(hit);
+                pdebug(hit_z_norm);
+                pdebug(softmax_max);
+                pdebug(exp_delta_inv_z);
+                pdebug(exp_z);
+                pdebug(softmax_sum);
+                pdebug3(color);
+            }
         }
     }
 
     color /= softmax_sum;
-
-    // if (global_idx.x == 0 && global_idx.y == 0)
-    // {
-    //     printf("bg_weight: %f\n", bg_weight);
-    //     printf("softmax_sum: %f\n", softmax_sum);
-    //     printf("color: %f %f %f\n", color.x, color.y, color.z);
-    // }
 
     output.storeOnce(uint3(global_idx.xy, 0), color.x);
     output.storeOnce(uint3(global_idx.xy, 1), color.y);
