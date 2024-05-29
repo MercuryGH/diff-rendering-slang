@@ -21,15 +21,7 @@ class SoftRas(Function):
         grid_size = calc_grid_size(original_shape)
 
         soft_ras.main(
-            camera=(
-                camera.eye,
-                camera.dir,
-                camera.up,
-                camera.fov,
-                float(camera.width) / float(camera.height),
-                camera.near,
-                camera.far,
-            ),
+            camera=camera.serialize(),
             face_vertices=face_vertices,
             output=output,
             params=params,  # directly pass the RenderParams instance
