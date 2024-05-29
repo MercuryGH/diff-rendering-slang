@@ -2,6 +2,7 @@ from attr import dataclass
 
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from utils.vectors import Vector3
@@ -24,15 +25,15 @@ class PerspectiveCamera(Camera):
 
     # align with the camera in the shader
     def serialize(self):
-        return (
-            self.eye.to_list(),
-            self.dir.to_list(),
-            self.up.to_list(),
-            self.fov,
-            float(self.width) / float(self.height),
-            self.near,
-            self.far,
-        )
+        return {
+            "eye": self.eye.to_list(),
+            "dir": self.dir.to_list(),
+            "up": self.up.to_list(),
+            "fov": self.fov,
+            "aspect": float(self.width) / float(self.height),
+            "near": self.near,
+            "far": self.far,
+        }
 
 
 if __name__ == "__main__":

@@ -75,11 +75,12 @@ class Transform:
     scaling: Vector3
 
     def serialize(self):
-        return (
-            [self.rotation.x, self.rotation.y, self.rotation.z, self.rotation.w],
-            self.position.to_list(),
-            self.scaling.to_list(),
-        )
+        return {
+            "r": [self.rotation.x, self.rotation.y, self.rotation.z, self.rotation.w],
+            "t": self.position.to_list(),
+            "s": self.scaling.to_list(),
+        }
+
 
 if __name__ == "__main__":
     import numpy as np
@@ -97,7 +98,9 @@ if __name__ == "__main__":
         scaling=Vector3(2.0, 3.0, 7.0),
     )
 
-    transform_module = slangtorch.loadModule("shaders/soft_ras/transform.slang", verbose=True)
+    transform_module = slangtorch.loadModule(
+        "shaders/soft_ras/transform.slang", verbose=True
+    )
 
     class TestTransform(Function):
         @staticmethod
