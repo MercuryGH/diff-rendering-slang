@@ -49,7 +49,7 @@ struct PerspectiveCamera
     }
 }
 
-struct MVP : IDifferentiable
+struct VP : IDifferentiable
 {
     float4x4 view;
     float4x4 proj;

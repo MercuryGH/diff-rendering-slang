@@ -11,6 +11,7 @@
 
 import camera;
 import math;
+import transform;
 
 struct RenderParams
 {
@@ -52,12 +53,13 @@ float3 loadFloat3FromTensor(
 void main(
     PerspectiveCamera camera,
     DiffTensorView<float> face_vertices,
+    Transform transform,
     DiffTensorView<float> output,
     RenderParams params) // control soft rasterization
 {
     uint3 global_idx = cudaBlockIdx() * cudaBlockDim() + cudaThreadIdx();
 
-    uint2 image_size = uint2(output.size(0), output.size(1));
+    uint2 image_size = uint2(output.size(1), output.size(0));
 
     if (global_idx.x >= image_size.x || global_idx.y >= image_size.y)
         return;
@@ -72,14 +74,16 @@ void main(
     const float epsilon = params.epsilon;
     const float gamma = params.gamma;
 
-    let mvp = MVP(camera.getViewMatrix(), camera.getProjMatrix(), float2(image_size));
+    let vp = VP(camera.getViewMatrix(), camera.getProjMatrix(), float2(image_size));
+    let model = transform.getMatrix();
 
     float bg_weight = exp(epsilon / gamma);
     if_pixel(0, 0)
     {
         pdebug(bg_weight);
-        pdebug4x4(mvp.view);
-        pdebug4x4(mvp.proj);
+        pdebug4x4(model);
+        pdebug4x4(vp.view);
+        pdebug4x4(vp.proj);
     }
 
     float softmax_sum = bg_weight;
@@ -93,17 +97,21 @@ void main(
         [MaxIters(600)]                                                 // TODO: remove this by using separate kernel
         for (uint i_face = 0; i_face < face_vertices.size(1); i_face++) // for each face
         {
-            float3 A = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 0));
-            float3 B = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 1));
-            float3 C = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 2));
+            float3 A_local = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 0));
+            float3 B_local = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 1));
+            float3 C_local = loadFloat3FromTensor(face_vertices, int3(bs, i_face, 2));
 
-            float3 A_view = mvp.worldToView(A);
-            float3 B_view = mvp.worldToView(B);
-            float3 C_view = mvp.worldToView(C);
+            float3 A_world = mul(model, float4(A_local, 1)).xyz;
+            float3 B_world = mul(model, float4(B_local, 1)).xyz;
+            float3 C_world = mul(model, float4(C_local, 1)).xyz;
 
-            float3 A_screen = mvp.viewToScreen(A_view);
-            float3 B_screen = mvp.viewToScreen(B_view);
-            float3 C_screen = mvp.viewToScreen(C_view);
+            float3 A_view = vp.worldToView(A_world);
+            float3 B_view = vp.worldToView(B_world);
+            float3 C_view = vp.worldToView(C_world);
+
+            float3 A_screen = vp.viewToScreen(A_view);
+            float3 B_screen = vp.viewToScreen(B_view);
+            float3 C_screen = vp.viewToScreen(C_view);
 
             float3 barycentric = barycentric(float3(A_screen.xy, 0), float3(B_screen.xy, 0), float3(C_screen.xy, 0), float3(pixel_coord, 0));
 
@@ -124,7 +132,7 @@ void main(
                 pdebug3(barycentric);
 
                 pdebug2(pixel_coord);
-                pdebug2(mvp.screen_resolution);
+                pdebug2(vp.screen_resolution);
             }
 
             /// do barycentric interpolation for inverse z under perspective camera
@@ -177,8 +185,8 @@ void main(
 
     color /= softmax_sum;
 
-    output.storeOnce(uint3(global_idx.xy, 0), color.x);
-    output.storeOnce(uint3(global_idx.xy, 1), color.y);
-    output.storeOnce(uint3(global_idx.xy, 2), color.z);
+    output.storeOnce(uint3(global_idx.yx, 0), color.x);
+    output.storeOnce(uint3(global_idx.yx, 1), color.y);
+    output.storeOnce(uint3(global_idx.yx, 2), color.z);
 }
 

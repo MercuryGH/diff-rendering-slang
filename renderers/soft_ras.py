@@ -3,29 +3,46 @@ import timeit
 import numpy as np
 from torch.autograd import Function
 from renderers.module import soft_ras
-from utils.util import calc_grid_size
 
 from renderers.camera import PerspectiveCamera
+from renderers.transform import Transform
 
 BLOCK_SIZE = (16, 16, 1)
 
 
+def divide_and_round_up(a: int, b: int):
+    return (a + b - 1) // b
+
+
 class SoftRas(Function):
     @staticmethod
-    def forward(ctx, camera: PerspectiveCamera, face_vertices: torch.Tensor, params):
+    def forward(
+        ctx,
+        camera: PerspectiveCamera,
+        face_vertices: torch.Tensor,
+        transform: Transform,
+        params,
+    ):
         ctx.save_for_backward(face_vertices)
         ctx.params = params
-        original_shape = (camera.width, camera.height, 3)
+        # (y, x, 3) to align with the behavior of plt.imshow
+        original_shape = (camera.height, camera.width, 3)
         output = torch.zeros(original_shape, dtype=torch.float).cuda()
-
-        grid_size = calc_grid_size(original_shape)
 
         soft_ras.main(
             camera=camera.serialize(),
             face_vertices=face_vertices,
+            transform=transform.serialize(),
             output=output,
             params=params,  # directly pass the RenderParams instance
-        ).launchRaw(blockSize=BLOCK_SIZE, gridSize=grid_size)
+        ).launchRaw(
+            blockSize=BLOCK_SIZE,
+            gridSize=(
+                divide_and_round_up(camera.width, BLOCK_SIZE[0]),
+                divide_and_round_up(camera.height, BLOCK_SIZE[1]),
+                1,
+            ),
+        )
 
         return output
 
