@@ -1,0 +1,23 @@
+/// debug macros
+///
+/// Macros are not exported by modules, so they have to be in a traditional header file.
+
+#pragma once
+
+#ifdef DEBUG
+
+#define if_pixel(x, y) if (all(global_idx.xy == uint2((x), (y))))
+
+#define pdebug(v) printf("%s: %f\n", #v, v)
+#define pdebug2(v) printf("%s: %f %f\n", #v, v.x, v.y)
+#define pdebug3(v) printf("%s: %f %f %f\n", #v, v.x, v.y, v.z)
+
+#else
+
+#define if_pixel(x, y)
+
+#define pdebug(v)
+#define pdebug2(v)
+#define pdebug3(v)
+
+#endif
