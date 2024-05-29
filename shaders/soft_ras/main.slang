@@ -75,7 +75,12 @@ void main(
     let mvp = MVP(camera.getViewMatrix(), camera.getProjMatrix(), float2(image_size));
 
     float bg_weight = exp(epsilon / gamma);
-    if_pixel(0, 0) pdebug(bg_weight);
+    if_pixel(0, 0)
+    {
+        pdebug(bg_weight);
+        pdebug4x4(mvp.view);
+        pdebug4x4(mvp.proj);
+    }
 
     float softmax_sum = bg_weight;
     float softmax_max = params.epsilon;

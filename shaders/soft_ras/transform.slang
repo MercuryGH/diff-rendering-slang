@@ -27,6 +27,9 @@ struct Transform
 
 /// Test for transform
 
+#define DEBUG
+#include <debug.slangh>
+
 [CudaKernel]
 [Differentiable]
 [AutoPyBindCUDA]
@@ -34,15 +37,13 @@ void TestTransform(Transform transform)
 {
     let transform_mat = transform.getMatrix();
 
-    printf("transform_mat row0: %f %f %f %f\n", transform_mat[0][0], transform_mat[0][1], transform_mat[0][2], transform_mat[0][3]);
-    printf("transform_mat row1: %f %f %f %f\n", transform_mat[1][0], transform_mat[1][1], transform_mat[1][2], transform_mat[1][3]);
-    printf("transform_mat row2: %f %f %f %f\n", transform_mat[2][0], transform_mat[2][1], transform_mat[2][2], transform_mat[2][3]);
-    printf("transform_mat row3: %f %f %f %f\n", transform_mat[3][0], transform_mat[3][1], transform_mat[3][2], transform_mat[3][3]);
+    pdebug4x4(transform_mat);
 
     let p = float4(1, 0, 0, 1);
     let q = float4(3, -2, 1, 1);
     let p_t = mul(transform_mat, p);
     let q_t = mul(transform_mat, q);
-    printf("p_t: %f %f %f\n", p_t.x, p_t.y, p_t.z);
-    printf("q_t: %f %f %f\n", q_t.x, q_t.y, q_t.z);
+
+    pdebug3(p_t);
+    pdebug3(q_t);
 }

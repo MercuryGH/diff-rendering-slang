@@ -51,7 +51,7 @@ if __name__ == "__main__":
         height=512,
     )
 
-    camera_module = slangtorch.loadModule("shaders/soft_ras/camera.slang")
+    camera_module = slangtorch.loadModule("shaders/soft_ras/camera.slang", verbose=True)
 
     class TestPerspectiveCamera(Function):
         @staticmethod

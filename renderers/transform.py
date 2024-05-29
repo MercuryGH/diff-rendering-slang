@@ -97,7 +97,7 @@ if __name__ == "__main__":
         scaling=Vector3(2.0, 3.0, 7.0),
     )
 
-    transform_module = slangtorch.loadModule("shaders/soft_ras/transform.slang")
+    transform_module = slangtorch.loadModule("shaders/soft_ras/transform.slang", verbose=True)
 
     class TestTransform(Function):
         @staticmethod
