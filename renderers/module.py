@@ -1,15 +1,15 @@
-import slangpy
+import slangtorch
 
-rasterizer2d = slangpy.loadModule("shaders/rasterizer/main.slang", verbose=True)
+rasterizer2d = slangtorch.loadModule("shaders/rasterizer/rasterizer.slang", verbose=True)
 
 camera = rasterizer2d.Camera(o=(0.0, 0.0), scale=(1.0, 1.0), frameDim=(1024, 1024))
 
 # ---
 
-brdf2d = slangpy.loadModule("shaders/renderer/BRDF.slang", verbose=True)
+brdf2d = slangtorch.loadModule("shaders/renderer/BRDF.slang", verbose=True)
 
-light_kernel = slangpy.loadModule("shaders/renderer/lightkernel.slang", verbose=True)
+light_kernel = slangtorch.loadModule("shaders/renderer/lightkernel.slang", verbose=True)
 
 # softras
 
-soft_ras = slangpy.loadModule("shaders/soft_ras/main.slang", verbose=True)
+soft_ras = slangtorch.loadModule("shaders/soft_ras/main.slang", verbose=True)

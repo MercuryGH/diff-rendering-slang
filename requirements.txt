@@ -1,0 +1,6 @@
+torch
+matplotlib
+numpy
+slangtorch
+cuda-nvcc
+opencv

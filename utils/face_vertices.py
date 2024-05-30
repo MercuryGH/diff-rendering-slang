@@ -1,7 +1,7 @@
 import torch
 
 
-def face_vertices(vertices, faces):
+def face_vertices(vertices: torch.Tensor, faces: torch.Tensor):
     """
     :param vertices: [batch size, number of vertices, 3]
     :param faces: [batch size, number of faces, 3]
