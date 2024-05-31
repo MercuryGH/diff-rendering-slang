@@ -77,7 +77,7 @@ void main(
     let vp = VP(camera.getViewMatrix(), camera.getProjMatrix(), float2(image_size));
     let model = transform.getMatrix();
 
-    float bg_weight = exp(epsilon / gamma);
+    float bg_weight = exp(0.0 / gamma);
     if_pixel(0, 0)
     {
         pdebug(bg_weight);
