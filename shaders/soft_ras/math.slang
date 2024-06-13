@@ -89,3 +89,15 @@ float3 barycentric(float3 A, float3 B, float3 C, float3 P)
     float u = 1.0f - v - w;
     return float3(u, v, w);
 }
+
+[Differentiable]
+float perspective_correct_interpolate(float A, float B, float C, float3 barycentric, float3 correction)
+{
+    return dot(barycentric * correction, float3(A, B, C)) / dot(barycentric, correction);
+}
+
+[Differentiable]
+float3 perspective_correct_interpolate(float3 A, float3 B, float3 C, float3 barycentric, float3 correction)
+{
+    return (barycentric.x * A * correction.x + barycentric.y * B * correction.y + barycentric.z * C * correction.z) / dot(barycentric, correction);
+}

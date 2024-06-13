@@ -3,9 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from renderers.soft_ras import SoftRas
-from resources.resource import spot_obj
+from resources.resource import spot_obj, tex_image
 from utils.util import wrap_float_tensor
 from renderers.camera import PerspectiveCamera
+from renderers.light import PointLight
 from utils.vectors import Vector3
 from renderers.transform import Transform, rotate_to_quaternion
 
@@ -13,12 +14,12 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
 def single_forward(
-    renderer, camera, face_vertices, transform, RenderParams
+    renderer, camera, mesh, transform, img, RenderParams
 ) -> torch.Tensor:
     # Create an instance of RenderParams
     # params = RenderParams(width, height, sigma)
     # Pass it to the forward function
-    output = renderer.apply(camera, face_vertices, transform, RenderParams)
+    output = renderer.apply(camera, mesh, transform, img, RenderParams)
     return output
 
 
@@ -26,21 +27,22 @@ def main():
     renderer = SoftRas()
     # width = height = 512
 
-    face_vertices = spot_obj.face_vertices
-    print(face_vertices.shape)
+    # face_vertices = spot_obj.face_vertices
+    # print(face_vertices.shape)
+
 
     params = {
         "sigma": 1e-6,
         "epsilon": 1e-3,
         "gamma": 1e-4,
         "distance_epsilon": 1e-5,
-        "fg_color": [0.7, 0.8, 0.9],
+        # "fg_color": [0.7, 0.8, 0.9],
         "bg_color": [0.3, 0.2, 0.1],
     }
 
     camera = PerspectiveCamera(
-        eye=Vector3(3.0, 0.0, 0.0),
-        dir=Vector3(-1.0, 0.0, 0.0),
+        eye=Vector3(0.0, 0.0, -3.0),
+        dir=Vector3(0.0, 0.0, 1.0),
         up=Vector3(0.0, 1.0, 0.0),
         fov=60.0 / 180.0 * np.pi,
         near=0.1,
@@ -55,11 +57,13 @@ def main():
         scaling=Vector3(1.0, 1.5, 1.0),
     )
 
-    output = single_forward(renderer, camera, face_vertices, transform, params)
-    print(output[0, 0, :])
+    image = wrap_float_tensor(tex_image)
+
+    output = single_forward(renderer, camera, spot_obj, transform, image, params)
     print(output.shape)
     # plt.rcParams["figure.figsize"] = (camera.width, camera.height)
-    plt.imshow(output.cpu().numpy(), origin="lower")
+    # plt.imshow(output.cpu().numpy(), origin="lower")
+    plt.imsave("output.png", output.cpu().numpy(), origin="lower")
     plt.show()
 
 
