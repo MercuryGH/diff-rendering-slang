@@ -92,7 +92,7 @@ struct VP : IDifferentiable
         const float4 clip_pos = mul(proj, view_pos);
         const float3 ndc_pos = clip_pos.xyz / clip_pos.w;
         const float2 screen_pos = 0.5f * (ndc_pos.xy + 1.0f) * screen_resolution;
-        return float3(screen_pos, ndc_pos.z);
+        return float3(screen_pos, 1.0 / clip_pos.w);
     }
 };
 
