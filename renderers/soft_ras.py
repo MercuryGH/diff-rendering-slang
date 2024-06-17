@@ -32,7 +32,7 @@ class SoftRas(Function):
         original_shape = (camera.height, camera.width, 3)
         output = torch.zeros(original_shape, dtype=torch.float).cuda()
 
-        soft_ras.main(
+        soft_ras.Main(
             camera=camera.serialize(),
             mesh=mesh.serialize(),
             transform=transform.serialize(),

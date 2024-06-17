@@ -32,7 +32,7 @@ struct RenderParams
 [CudaKernel]
 [Differentiable]
 [AutoPyBindCUDA]
-void main(
+void Main(
     PerspectiveCamera camera,
     Mesh mesh,
     Transform transform,
@@ -51,7 +51,6 @@ void main(
 
     float2 pixel_coord = global_idx.xy + 0.5;
 
-    // const float3 fg_color = params.fg_color; // TODO: replace it with proper texture mapping
     const float3 bg_color = params.bg_color;
 
     const float epsilon = params.epsilon;
