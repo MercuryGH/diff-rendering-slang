@@ -91,13 +91,13 @@ float3 barycentric(float3 A, float3 B, float3 C, float3 P)
 }
 
 [Differentiable]
-float perspective_correct_interpolate(float A, float B, float C, float3 barycentric, float3 correction)
+float perspective_correct_interpolate(float A, float B, float C, float3 barycentric, float3 inv_clip_w)
 {
-    return dot(barycentric * correction, float3(A, B, C)) / dot(barycentric, correction);
+    return dot(barycentric * inv_clip_w, float3(A, B, C)) / dot(barycentric, inv_clip_w);
 }
 
 [Differentiable]
-float3 perspective_correct_interpolate(float3 A, float3 B, float3 C, float3 barycentric, float3 correction)
+float3 perspective_correct_interpolate(float3 A, float3 B, float3 C, float3 barycentric, float3 inv_clip_w)
 {
-    return (barycentric.x * A * correction.x + barycentric.y * B * correction.y + barycentric.z * C * correction.z) / dot(barycentric, correction);
+    return (barycentric.x * A * inv_clip_w.x + barycentric.y * B * inv_clip_w.y + barycentric.z * C * inv_clip_w.z) / dot(barycentric, inv_clip_w);
 }
