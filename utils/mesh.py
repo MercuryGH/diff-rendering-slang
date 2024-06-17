@@ -144,7 +144,7 @@ class Mesh(object):
         Create a Mesh object from a .obj file
         """
 
-        vertices, normals, tex_coords, faces, textures, normal_indices, uv_indices = (
+        vertices, normals, tex_coords, faces, textures, uv_indices, normal_indices = (
             load_obj(
                 filename_obj,
                 normalization=normalization,
