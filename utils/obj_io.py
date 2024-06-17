@@ -3,6 +3,7 @@ import os
 import torch
 import numpy as np
 
+
 def load_textures(filename_obj: str, filename_mtl: str, texture_res: int):
     return NotImplemented
 
@@ -43,15 +44,21 @@ def load_obj(
             continue
         if line.split()[0] == "vn":
             normals.append([float(v) for v in line.split()[1:4]])
-    normals = torch.from_numpy(np.vstack(normals).astype(np.float32)).cuda()
-    
+    if len(normals) != 0:
+        normals = torch.from_numpy(np.vstack(normals).astype(np.float32)).cuda()
+    else:
+        normals = torch.zeros_like(vertices)
+
     tex_coords = []
     for line in lines:
         if len(line.split()) == 0:
             continue
         if line.split()[0] == "vt":
             tex_coords.append([float(v) for v in line.split()[1:3]])
-    tex_coords = torch.from_numpy(np.vstack(tex_coords).astype(np.float32)).cuda()
+    if len(tex_coords) != 0:
+        tex_coords = torch.from_numpy(np.vstack(tex_coords).astype(np.float32)).cuda()
+    else:
+        tex_coords = torch.zeros((vertices.shape[0], 2), dtype=torch.float32).cuda()
 
     # load faces
     faces = []
@@ -64,24 +71,36 @@ def load_obj(
             vs = line.split()[1:]
             nv = len(vs)
             v0 = int(vs[0].split("/")[0])
+            if len(vs[0].split("/")) > 1:
+                uv0 = int(vs[0].split("/")[1])
+                if len(vs[0].split("/")) > 2:
+                    n0 = int(vs[0].split("/")[2])
             for i in range(nv - 2):
                 v1 = int(vs[i + 1].split("/")[0])
                 v2 = int(vs[i + 2].split("/")[0])
                 faces.append((v0, v1, v2))
                 if len(vs[0].split("/")) > 1:
-                    uv0 = int(vs[0].split("/")[1])
                     uv1 = int(vs[i + 1].split("/")[1])
                     uv2 = int(vs[i + 2].split("/")[1])
                     uv_indices.append((uv0, uv1, uv2))
-                if len(vs[0].split("/")) > 2:
-                    n0 = int(vs[0].split("/")[2])
-                    n1 = int(vs[i + 1].split("/")[2])
-                    n2 = int(vs[i + 2].split("/")[2])
-                    normal_indices.append((n0, n1, n2))
-                
+                    if len(vs[0].split("/")) > 2:
+                        n1 = int(vs[i + 1].split("/")[2])
+                        n2 = int(vs[i + 2].split("/")[2])
+                        normal_indices.append((n0, n1, n2))
+
     faces = torch.from_numpy(np.vstack(faces).astype(np.int32)).cuda() - 1
-    uv_indices = torch.from_numpy(np.vstack(uv_indices).astype(np.int32)).cuda() - 1
-    normal_indices = torch.from_numpy(np.vstack(normal_indices).astype(np.int32)).cuda() - 1
+
+    if len(uv_indices) == 0:
+        uv_indices = torch.zeros_like(faces)
+    else:
+        uv_indices = torch.from_numpy(np.vstack(uv_indices).astype(np.int32)).cuda() - 1
+
+    if len(normal_indices) == 0:
+        normal_indices = torch.zeros_like(faces)
+    else:
+        normal_indices = (
+            torch.from_numpy(np.vstack(normal_indices).astype(np.int32)).cuda() - 1
+        )
 
     # load textures
     textures = None
