@@ -11,3 +11,4 @@ from utils.mesh import Mesh
 spot_obj = Mesh.from_obj("resources/spot_simplified.obj", load_texture=False)
 tex_image = np.divide(cv2.imread(R"resources/Grid.png")[:,:,[2,1,0]], 255)
 # spot_obj = Mesh.from_obj("resources/single_triangle.obj", load_texture=False)
+cube_obj = Mesh.from_obj("resources/cube.obj", load_texture=False)
