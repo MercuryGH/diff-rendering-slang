@@ -8,6 +8,7 @@ from renderers.camera import PerspectiveCamera
 from renderers.transform import Transform
 from utils.mesh import Mesh
 from renderers.light import PointLight
+from renderers.material import CookTorrance
 
 BLOCK_SIZE = (16, 16, 1)
 
@@ -23,6 +24,8 @@ class SoftRas(Function):
         camera: PerspectiveCamera,
         mesh: Mesh,
         transform: Transform,
+        light: PointLight,
+        material: CookTorrance,
         image: torch.Tensor,
         params,
     ):
@@ -36,6 +39,8 @@ class SoftRas(Function):
             camera=camera.serialize(),
             mesh=mesh.serialize(),
             transform=transform.serialize(),
+            light=light.serialize(),
+            material=material.serialize(),
             texture0={"image": image},
             output=output,
             params=params,  # directly pass the RenderParams instance

@@ -14,6 +14,8 @@ import math;
 import transform;
 import mesh;
 import texture;
+import lighting;
+import bxdf;
 
 import memory;
 
@@ -25,8 +27,14 @@ struct RenderParams
 
     float distance_epsilon;
 
-    // float3 fg_color;
+    float3 ambient_light;
     float3 bg_color;
+};
+
+struct CookTorranceMaterial
+{
+    float roughness;
+    float metallic;
 };
 
 [CudaKernel]
@@ -36,6 +44,8 @@ void Main(
     PerspectiveCamera camera,
     Mesh mesh,
     Transform transform,
+    PointLight light,
+    CookTorranceMaterial material,
     Texture2D texture0,
     DiffTensorView<float> output,
     RenderParams params) // control soft rasterization
@@ -166,11 +176,33 @@ void Main(
 
             let uv = float2(u, v);
 
-            let fg_color : float3 = texture0.sample(uv);
+            let albedo : float3 = texture0.sample(uv);
 
-            if_pixel(256, 256) pdebug3(fg_color);
+            if_pixel(256, 256) pdebug3(albedo);
 
-            color = color / exp_delta_inv_z + exp_z * hit * fg_color;
+            /// normal interpolation
+            let normal_index = reinterpret<int3>(loadFloat3FromTensor(mesh.normal_indices, int2(bs, i_face)));
+
+            let normal_A = loadFloat3FromTensor(mesh.normals, int2(bs, normal_index.x));
+            let normal_B = loadFloat3FromTensor(mesh.normals, int2(bs, normal_index.y));
+            let normal_C = loadFloat3FromTensor(mesh.normals, int2(bs, normal_index.z));
+
+            let normal = normalize(perspective_correct_interpolate(normal_A, normal_B, normal_C, barycentric, float3(A_screen.z, B_screen.z, C_screen.z)));
+
+            /// Lighting
+
+            let normal_matrix = transpose(inverse(model));
+            let normal_world = normalize(mul(normal_matrix, float4(normal, 0)).xyz);
+
+            let Lo = light.illuminate(
+                CookTorrance(albedo, material.metallic, material.roughness),
+                SurfaceGeometry(A_world, normal_world, float2(0)),
+                normalize(light.position - A_world));
+
+            let ambient = params.ambient_light * albedo;
+            let lighted_color = ambient + Lo;
+
+            color = color / exp_delta_inv_z + exp_z * hit * lighted_color;
 
             // if_pixel(256, 256)
             // {
@@ -188,6 +220,10 @@ void Main(
     }
 
     color /= softmax_sum;
+
+    /// Gamma correction
+    color = color / (color + 1.0);
+    color = pow(color, 1.0 / 2.2);
 
     output.storeOnce(uint3(global_idx.yx, 0), color.x);
     output.storeOnce(uint3(global_idx.yx, 1), color.y);
