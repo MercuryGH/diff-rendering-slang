@@ -29,6 +29,7 @@ struct RenderParams
 
     float3 ambient_light;
     float3 bg_color;
+    bool gamma_correction;
 };
 
 struct CookTorranceMaterial
@@ -222,8 +223,10 @@ void Main(
     color /= softmax_sum;
 
     /// Gamma correction
-    color = color / (color + 1.0);
-    color = pow(color, 1.0 / 2.2);
+    if (params.gamma_correction) {
+        color = color / (color + 1.0);
+        color = pow(color, 1.0 / 2.2);
+    }
 
     output.storeOnce(uint3(global_idx.yx, 0), color.x);
     output.storeOnce(uint3(global_idx.yx, 1), color.y);

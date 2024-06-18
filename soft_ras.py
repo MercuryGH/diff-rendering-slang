@@ -42,6 +42,7 @@ def main():
         # "fg_color": [0.7, 0.8, 0.9],
         "ambient_light": [0.02, 0.02, 0.02],
         "bg_color": [0.4, 0.4, 0.4],
+        "gamma_correction": True,
     }
 
     camera = PerspectiveCamera(
