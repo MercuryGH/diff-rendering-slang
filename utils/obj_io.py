@@ -31,17 +31,22 @@ def load_obj(
     with open(filename_obj) as f:
         lines = f.readlines()
 
+    striped_lines: list[str] = []
     for line in lines:
-        if len(line.split()) == 0:
-            continue
+        # remove comments
+        if "#" in line:
+            line = line[: line.index("#")]
+        line = line.strip()
+        if len(line) > 0:
+            striped_lines.append(line)
+
+    for line in striped_lines:
         if line.split()[0] == "v":
             vertices.append([float(v) for v in line.split()[1:4]])
     vertices = torch.from_numpy(np.vstack(vertices).astype(np.float32)).cuda()
 
     normals = []
-    for line in lines:
-        if len(line.split()) == 0:
-            continue
+    for line in striped_lines:
         if line.split()[0] == "vn":
             normals.append([float(v) for v in line.split()[1:4]])
     if len(normals) != 0:
@@ -50,9 +55,7 @@ def load_obj(
         normals = torch.zeros_like(vertices)
 
     tex_coords = []
-    for line in lines:
-        if len(line.split()) == 0:
-            continue
+    for line in striped_lines:
         if line.split()[0] == "vt":
             tex_coords.append([float(v) for v in line.split()[1:3]])
     if len(tex_coords) != 0:
@@ -64,9 +67,7 @@ def load_obj(
     faces = []
     uv_indices = []
     normal_indices = []
-    for line in lines:
-        if len(line.split()) == 0:
-            continue
+    for line in striped_lines:
         if line.split()[0] == "f":
             vs = line.split()[1:]
             nv = len(vs)
@@ -116,9 +117,7 @@ def load_obj(
             raise Exception("Failed to load textures.")
     elif load_texture and texture_type == "vertex":
         textures = []
-        for line in lines:
-            if len(line.split()) == 0:
-                continue
+        for line in striped_lines:
             if line.split()[0] == "v":
                 textures.append([float(v) for v in line.split()[4:7]])
         textures = torch.from_numpy(np.vstack(textures).astype(np.float32)).cuda()
