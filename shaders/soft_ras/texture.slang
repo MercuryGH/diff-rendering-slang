@@ -1,6 +1,6 @@
 import memory;
 
-struct Texture
+struct Texture2D
 {
     DiffTensorView<float> image;
 
@@ -38,7 +38,7 @@ struct Texture
 [CudaKernel]
 [Differentiable]
 [AutoPyBindCUDA]
-void TestTexture(Texture texture, DiffTensorView<float> output)
+void TestTexture(Texture2D texture, DiffTensorView<float> output)
 {
     // sample texture to output, equivalent to guassian blur
 

@@ -36,7 +36,7 @@ void Main(
     PerspectiveCamera camera,
     Mesh mesh,
     Transform transform,
-    Texture texture0,
+    Texture2D texture0,
     DiffTensorView<float> output,
     RenderParams params) // control soft rasterization
 {
