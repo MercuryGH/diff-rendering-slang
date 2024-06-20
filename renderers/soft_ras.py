@@ -6,6 +6,9 @@ from renderers.module import soft_ras
 
 from renderers.camera import PerspectiveCamera
 from renderers.transform import Transform
+from utils.mesh import Mesh
+from renderers.light import PointLight
+from renderers.material import CookTorrance
 
 BLOCK_SIZE = (16, 16, 1)
 
@@ -19,20 +22,26 @@ class SoftRas(Function):
     def forward(
         ctx,
         camera: PerspectiveCamera,
-        face_vertices: torch.Tensor,
+        mesh: Mesh,
         transform: Transform,
+        light: PointLight,
+        material: CookTorrance,
+        image: torch.Tensor,
         params,
     ):
-        ctx.save_for_backward(face_vertices)
+        ctx.save_for_backward(mesh.face_vertices)
         ctx.params = params
         # (y, x, 3) to align with the behavior of plt.imshow
         original_shape = (camera.height, camera.width, 3)
         output = torch.zeros(original_shape, dtype=torch.float).cuda()
 
-        soft_ras.main(
+        soft_ras.Main(
             camera=camera.serialize(),
-            face_vertices=face_vertices,
+            mesh=mesh.serialize(),
             transform=transform.serialize(),
+            light=light.serialize(),
+            material=material.serialize(),
+            texture0={"image": image},
             output=output,
             params=params,  # directly pass the RenderParams instance
         ).launchRaw(

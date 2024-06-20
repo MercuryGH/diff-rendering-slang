@@ -19,6 +19,8 @@ class Vector3:
 
     def normalize(self):
         norm = math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+        if norm == 0:
+            return Vector3(0, 0, 0)
         return Vector3(self.x / norm, self.y / norm, self.z / norm)
 
     def to_list(self) -> list[float]:
