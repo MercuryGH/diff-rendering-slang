@@ -138,3 +138,5 @@ bin/
 
 # Ignore all slangpy cache folders.
 **/.slangtorch_cache/**
+
+results/

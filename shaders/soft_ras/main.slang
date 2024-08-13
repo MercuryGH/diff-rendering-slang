@@ -49,6 +49,7 @@ void Main(
     CookTorranceMaterial material,
     Texture2D texture0,
     DiffTensorView<float> output,
+    DiffTensorView<float> bg_color,
     RenderParams params) // control soft rasterization
 {
     uint3 global_idx = cudaBlockIdx() * cudaBlockDim() + cudaThreadIdx();
@@ -62,7 +63,8 @@ void Main(
 
     float2 pixel_coord = global_idx.xy + 0.5;
 
-    const float3 bg_color = params.bg_color;
+    // const float3 bg_color = params.bg_color;
+    let bg_color : float3 = float3(bg_color[0], bg_color[1], bg_color[2]);
 
     const float epsilon = params.epsilon;
     const float gamma = params.gamma;
@@ -71,13 +73,13 @@ void Main(
     let model = transform.getMatrix();
 
     float bg_weight = exp(0.0 / gamma);
-    if_pixel(0, 0)
-    {
-        pdebug(bg_weight);
-        pdebug4x4(model);
-        pdebug4x4(vp.view);
-        pdebug4x4(vp.proj);
-    }
+    // if_pixel(0, 0)
+    // {
+    //     pdebug(bg_weight);
+    //     pdebug4x4(model);
+    //     pdebug4x4(vp.view);
+    //     pdebug4x4(vp.proj);
+    // }
 
     float softmax_sum = bg_weight;
     float softmax_max = params.epsilon;
@@ -87,13 +89,20 @@ void Main(
     let num_batch = mesh.faces.size(0);
     let num_face = mesh.faces.size(1);
 
-    [MaxIters(3)]
+    [MaxIters(2)]
     for (uint bs = 0; bs < num_batch; bs++) // for each batch
     {
-        [MaxIters(600)]                                    // TODO: remove this by using separate kernel
+        /**
+         * 1. Runtime Error (invalid argument) if set MaxIters(600)
+         * 2. Runtime Error (illegal memory access) if set MaxIters(60)
+        */
+        
+        [MaxIters(6)]                                    // TODO: remove this by using separate kernel
         for (uint i_face = 0; i_face < num_face; i_face++) // for each face
         {
-            int3 vertex_indices = reinterpret<int3>(loadFloat3FromTensor(mesh.faces, int2(bs, i_face)));
+            // Illegal memory access
+            // int3 vertex_indices = reinterpret<int3>(loadFloat3FromTensor(mesh.faces, int2(bs, i_face)));
+            int3 vertex_indices = int3(0, 1, 2);
 
             float3 A_local = loadFloat3FromTensor(mesh.vertices, int2(bs, vertex_indices.x));
             float3 B_local = loadFloat3FromTensor(mesh.vertices, int2(bs, vertex_indices.y));
@@ -195,10 +204,12 @@ void Main(
             let normal_matrix = transpose(inverse(model));
             let normal_world = normalize(mul(normal_matrix, float4(normal, 0)).xyz);
 
-            let Lo = light.illuminate(
-                CookTorrance(albedo, material.metallic, material.roughness),
-                SurfaceGeometry(A_world, normal_world, float2(0)),
-                normalize(light.position - A_world));
+            // Illegal memory access
+            // let Lo = light.illuminate(
+            //     CookTorrance(albedo, material.metallic, material.roughness),
+            //     SurfaceGeometry(A_world, normal_world, float2(0)),
+            //     normalize(light.position - A_world));
+            let Lo = float3(0, 0, 0);
 
             let ambient = params.ambient_light * albedo;
             let lighted_color = ambient + Lo;
@@ -223,7 +234,8 @@ void Main(
     color /= softmax_sum;
 
     /// Gamma correction
-    if (params.gamma_correction) {
+    if (params.gamma_correction)
+    {
         color = color / (color + 1.0);
         color = pow(color, 1.0 / 2.2);
     }

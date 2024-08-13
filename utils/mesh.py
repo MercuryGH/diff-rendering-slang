@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+from utils.gltf_io import load_gltf
 from utils.obj_io import load_obj, save_obj
 from utils.vertex_normals import vertex_normals
 from utils.face_vertices import face_vertices
@@ -130,6 +131,35 @@ class Mesh(object):
                 textures = textures[None, :, :]
             self.textures = textures
             self.texture_res = int(np.sqrt(self.textures.shape[2]))
+
+    @classmethod
+    def from_gltf(
+        cls,
+        filename_gltf,
+        normalization=False,
+        load_texture=False,
+        texture_res=1,
+        texture_type: Literal["surface", "vertex"] = "surface",
+    ):
+        """
+        Create a Mesh object from a .gltf file
+        """
+
+        vertices, normals, tex_coords, faces = load_gltf(filename_gltf, normalization)
+        if not load_texture:
+            textures = None
+
+        return cls(
+            vertices=vertices,
+            faces=faces,
+            normals=normals,
+            normal_indices=faces,
+            tex_coords=tex_coords,
+            uv_indices=faces,
+            textures=textures,
+            texture_res=texture_res,
+            texture_type=texture_type,
+        )
 
     @classmethod
     def from_obj(
