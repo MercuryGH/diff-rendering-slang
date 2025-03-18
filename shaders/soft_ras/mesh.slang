@@ -2,6 +2,9 @@ struct Mesh
 {
     // ^ only float supported in DiffTensorView, use reinterpret<int> to unpack it
     // [bs, num of face, 3]
+
+    // TensorView<uint> faces;
+
     DiffTensorView<float> faces;
     DiffTensorView<float> normal_indices;
     DiffTensorView<float> uv_indices;

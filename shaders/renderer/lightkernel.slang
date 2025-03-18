@@ -68,17 +68,22 @@ float3 computeLighting(DiffTensorView<float> input,
 {
     float3 baseColor, N;
     float roughness;
+    
+    // sample diffuse
     baseColor = float3(sampleBilinear(input, uv, 0),
                        sampleBilinear(input, uv, 1),
                        sampleBilinear(input, uv, 2));
 
+    // sample tangent space normal
     N = float3(sampleBilinear(input, uv, 3),
                sampleBilinear(input, uv, 4),
                sampleBilinear(input, uv, 5));
 
+    // sample roughness
     roughness = sampleBilinear(input, uv, 6);
     baseColor = baseColor * baseColor;
-    N = N - float3(0.5f, 0.5f, 0.0f);
+    N = N * 2.0f - 1.0f;
+    // N = N - float3(0.5f, 0.5f, 0.0f);
     N = normalize(N);
 
     float3 lighting = BRDF(params.L, params.V, N, baseColor, roughness);
@@ -86,6 +91,7 @@ float3 computeLighting(DiffTensorView<float> input,
     return lighting;
 }
 
+// Used in single forward only
 [AutoPyBindCUDA]
 [CudaKernel]
 void brdf(TensorView<float> input, TensorView<float> output, InputParams input_params)
@@ -117,6 +123,7 @@ float loss(DiffTensorView<float> input,
     return dot(diff, diff);
 }
 
+// Used in training loop
 [AutoPyBindCUDA]
 [CudaKernel]
 [Differentiable]
@@ -132,5 +139,5 @@ void brdf_loss(DiffTensorView<float> input, DiffTensorView<float> output, Tensor
     float3 referenceVal = float3(reference[int3(globalIdx.xy, 0)], reference[int3(globalIdx.xy, 1)], reference[int3(globalIdx.xy, 2)]);
     float loss = loss(input, uv, referenceVal, PackInputParams(input_params));
 
-    output.store(globalIdx, loss);
+    output.storeOnce(globalIdx, loss);
 }

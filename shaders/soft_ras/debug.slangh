@@ -8,6 +8,7 @@
 
 #define if_pixel(x, y) if (all(global_idx.xy == uint2((x), (y))))
 
+#define pdebugi(v) printf("%s: %d\n", #v, v)
 #define pdebug2i(v) printf("%s: %d %d\n", #v, v.x, v.y)
 #define pdebug3i(v) printf("%s: %d %d %d\n", #v, v.x, v.y, v.z)
 

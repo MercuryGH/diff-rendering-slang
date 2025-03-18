@@ -13,5 +13,3 @@ light_kernel = slangtorch.loadModule("shaders/renderer/lightkernel.slang", verbo
 # softras
 
 soft_ras = slangtorch.loadModule("shaders/soft_ras/main.slang", verbose=True)
-# 加载 Toon Shader 模块
-toon_shader = slangtorch.loadModule("shaders/soft_ras/toon_shader.slang", verbose=True)

@@ -1,3 +1,4 @@
+[Differentiable]
 [PreferRecompute]
 int _sign(float x)
 {
@@ -20,7 +21,7 @@ float relu(float x)
 
 [Differentiable]
 [PreferRecompute]
-float distanceToVertex(float2 xy, float2 v)
+float distanceToVertex(no_diff float2 xy, no_diff float2 v)
 {
     // Compute the distance from a point to a vertex
     return length(xy - v);
@@ -28,7 +29,7 @@ float distanceToVertex(float2 xy, float2 v)
 
 [Differentiable]
 [PreferRecompute]
-float distanceToEdge(float2 u, float2 v, float2 pt)
+float distanceToEdge(no_diff float2 u, no_diff float2 v, no_diff float2 pt)
 {
     float2 e = v - u;
     float2 n = float2(-e.y, e.x);
@@ -50,7 +51,7 @@ float distanceToEdge(float2 u, float2 v, float2 pt)
 /// if the point is inside the triangle, the distance is negative
 [Differentiable]
 [PreferRecompute]
-float distanceToTriangle(float2 xy, float2 v1, float2 v2, float2 v3)
+float distanceToTriangle(no_diff float2 xy, no_diff float2 v1, no_diff float2 v2, no_diff float2 v3)
 {
     // Minimum distance to the edge of the triangle
     float d1 = distanceToEdge(v2, v1, xy);
@@ -73,14 +74,14 @@ float distanceToTriangle(float2 xy, float2 v1, float2 v2, float2 v3)
 
 [Differentiable]
 [PreferRecompute]
-float soft_triangle(float2 p, float2 v1, float2 v2, float2 v3, float sigma)
+float soft_triangle(no_diff float2 p, no_diff float2 v1, no_diff float2 v2, no_diff float2 v3, no_diff float sigma)
 {
     float d = distanceToTriangle(p, v1, v2, v3);
     return sigmoid(-_sign(d) * d * d / sigma);
 }
 
 [Differentiable]
-float3 barycentric(float3 A, float3 B, float3 C, float3 P)
+float3 barycentric(no_diff float3 A, no_diff float3 B, no_diff float3 C, no_diff float3 P)
 {
     float3 v0 = B - A;
     float3 v1 = C - A;

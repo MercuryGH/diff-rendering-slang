@@ -3,7 +3,7 @@
 [Differentiable]
 float getInputElement(
     DiffTensorView<float> input,
-    int3 loc // (bs, face, vertex)
+    no_diff int3 loc // (bs, face, vertex)
 )
 {
     loc = min(loc, int3(input.size(0) - 1, input.size(1) - 1, input.size(2) - 1));
@@ -14,7 +14,7 @@ float getInputElement(
 [Differentiable]
 float3 loadFloat3FromTensor(
     DiffTensorView<float> input,
-    int3 loc // (bs, face, vertex)
+    no_diff int3 loc // (bs, face, vertex)
 )
 {
     loc = min(loc, int3(input.size(0) - 1, input.size(1) - 1, input.size(2) - 1));
@@ -25,7 +25,7 @@ float3 loadFloat3FromTensor(
 [Differentiable]
 float3 loadFloat3FromTensor(
     DiffTensorView<float> input,
-    int2 loc // (bs, xxx)
+    no_diff int2 loc // (bs, xxx)
 )
 {
     loc = min(loc, int2(input.size(0) - 1, input.size(1) - 1));
@@ -36,7 +36,7 @@ float3 loadFloat3FromTensor(
 [Differentiable]
 float3 loadFloat3FromTensor(
     DiffTensorView<float> input,
-    int loc)
+    no_diff int loc)
 {
     loc = min(loc, input.size(0) - 1);
     loc = max(loc, 0);
@@ -44,9 +44,20 @@ float3 loadFloat3FromTensor(
 }
 
 [Differentiable]
+uint3 loadUint3FromTensor(
+    TensorView<uint> input,
+    no_diff int2 loc // (bs, xxx)
+)
+{
+    loc = min(loc, int2(input.size(0) - 1, input.size(1) - 1));
+    loc = max(loc, int2(0, 0));
+    return uint3(input[loc.x, loc.y, 0], input[loc.x, loc.y, 1], input[loc.x, loc.y, 2]);
+}
+
+[Differentiable]
 float2 loadFloat2FromTensor(
     DiffTensorView<float> input,
-    int2 loc // (bs, xxx)
+    no_diff int2 loc // (bs, xxx)
 )
 {
     loc = min(loc, int2(input.size(0) - 1, input.size(1) - 1));
@@ -57,7 +68,7 @@ float2 loadFloat2FromTensor(
 [Differentiable]
 float2 loadFloat2FromTensor(
     DiffTensorView<float> input,
-    int loc)
+    no_diff int loc)
 {
     loc = min(loc, input.size(0) - 1);
     loc = max(loc, 0);

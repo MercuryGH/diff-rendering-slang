@@ -2,25 +2,26 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import random
 import cv2
 from renderers.brdf_2d import Brdf2d
 from resources.resource import img, normal, roughness
 from utils.util import wrap_float_tensor, set_grad
 
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
 def training_loop(i,
     optimizer, full_res_brdf, renderer,
     width, height, view_vector, half_res_brdf
     ):
 
+    # Note: this is not a uniform distribution
     def random_hemi_vector():
         a, b, c = random.normalvariate(0, 1), random.normalvariate(0, 1), random.normalvariate(0, 1)
         l = (np.sqrt(a**2 + b**2 + c**2) + 0.0001)
         a, b, c = a/l, b/l, c/l
         c = abs(c)
-        return (a/l, b/l, c/l)
+        return (a, b, c)
 
     light_vector = random_hemi_vector()
 
@@ -31,8 +32,8 @@ def training_loop(i,
 
     output_loss = renderer.apply(width, height, full_res_brdf, input_params, half_res_brdf)
 
-    # register loss grad hook
-    output_loss.register_hook(set_grad(output_loss))
+    # register loss grad hook if necessary
+    # output_loss.register_hook(set_grad(output_loss))
 
     # Compute the loss.
     loss = torch.mean(output_loss)

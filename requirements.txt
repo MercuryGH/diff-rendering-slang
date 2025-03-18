@@ -4,3 +4,5 @@ numpy
 slangtorch
 cuda-nvcc
 opencv
+pygltflib
+trimesh

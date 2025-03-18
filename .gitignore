@@ -6,6 +6,12 @@ __pycache__/
 # Slang lock
 *.lock
 
+# temp image editing
+*.psd
+
+# writting docs
+docs/
+
 # video result binaries
 *.mp4
 
@@ -14,6 +20,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+temp_frames/
 build/
 develop-eggs/
 dist/
@@ -138,3 +145,5 @@ bin/
 
 # Ignore all slangpy cache folders.
 **/.slangtorch_cache/**
+
+results/

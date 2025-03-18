@@ -1,7 +1,7 @@
 import math;
 import mesh;
 
-interface IBxDF
+interface IBxDF: IDifferentiable
 {
     [Differentiable]
     float3 eval(float3 wo, float3 wi, float3 normal);
@@ -11,6 +11,7 @@ struct Lambertian : IBxDF
 {
     float3 albedo;
 
+    [Differentiable]
     __init(float3 albedo)
     {
         this.albedo = albedo;
@@ -31,6 +32,7 @@ struct Phong : IBxDF
     float3 ks; // specular albedo
     float shininess;
 
+    [Differentiable]
     __init(float3 kd, float3 ks, float shininess)
     {
         this.kd = kd;
@@ -56,6 +58,7 @@ struct ModifiedPhong : IBxDF
     float3 ks;
     float shininess;
 
+    [Differentiable]
     __init(float3 kd, float3 ks, float shininess)
     {
         this.kd = kd;
@@ -105,6 +108,7 @@ struct CookTorrance : IBxDF
     float metallic;
     float roughness;
 
+    [Differentiable]
     __init(float3 albedo, float metallic, float roughness)
     {
         this.albedo = albedo;

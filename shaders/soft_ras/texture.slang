@@ -5,7 +5,7 @@ struct Texture2D
     DiffTensorView<float> image;
 
     [Differentiable]
-    float3 sample(float2 uv)
+    float3 sample(no_diff float2 uv)
     {
         // bilinear interpolation
 
@@ -13,7 +13,7 @@ struct Texture2D
 
         let image_coord = uv * float2(image.size(1), image.size(0));
 
-        int2 uv0 = int2(no_diff(floor(image_coord)));
+        int2 uv0 = int2(floor(image_coord));
         int2 uv1 = (uv0 + 1) % int2(image.size(1), image.size(0));
 
         float2 f = image_coord - uv0;
