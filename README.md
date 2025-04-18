@@ -31,8 +31,6 @@ The optimization process is done with a random lighting and a fixed camera.
 
 > Check for [Tech blog written in Chinese](https://zrephel.fun/2025/03/20/%E5%8F%AF%E5%BE%AE%E6%B8%B2%E6%9F%93%E5%AE%9E%E9%AA%8C2%EF%BC%9A%E5%8F%AF%E5%BE%AE%E5%85%89%E6%A0%85%E5%8C%96%E5%87%A0%E4%BD%95%E5%8F%82%E6%95%B0%E8%87%AA%E5%8A%A8%E8%B0%83%E6%95%B4/) here.
 
-> Tech blog written in Chinese: 
-
 We minimize the difference between a fixed triangle and a flexible circle.
 
 ![rasterize](./img/rasterize.gif)
